@@ -15,7 +15,10 @@ class CurrencyRatesBloc extends Bloc<CurrencyRateEvent, CurrencyRateState> {
         _repository = repository;
 
   @override
-  CurrencyRateState get initialState => CurrencyRateState.loading();
+  CurrencyRateState get initialState => const CurrencyRatesLoading();
+
+  List<CurrencyRate> get _loadedRates =>
+      (state as CurrencyRatesLoaded)?.rates ?? [];
 
   void loadCurrencyRates() => add(CurrencyRateEvent.load());
 
@@ -23,18 +26,18 @@ class CurrencyRatesBloc extends Bloc<CurrencyRateEvent, CurrencyRateState> {
   Stream<CurrencyRateState> mapEventToState(CurrencyRateEvent event) async* {
     yield* event.join(
       (load) => _loadCurrencyRates(),
-      (refresh) => _refreshCurrencyRatesWhenLoaded(),
+      (refresh) => _refreshCurrencyRates(),
     );
   }
 
   Stream<CurrencyRateState> _loadCurrencyRates() async* {
     try {
-      yield CurrencyRateState.loading();
+      yield const CurrencyRatesLoading();
       final List<CurrencyRate> rates = await _repository.getCurrencyRates();
-      yield CurrencyRateState.loaded(rates);
+      yield CurrencyRatesLoaded(rates);
       _startPeriodicRatesRefresh();
     } catch (e) {
-      yield CurrencyRateState.error(e);
+      yield CurrencyRatesError(e);
     }
   }
 
@@ -45,25 +48,15 @@ class CurrencyRatesBloc extends Bloc<CurrencyRateEvent, CurrencyRateState> {
     );
   }
 
-  Stream<CurrencyRateState> _refreshCurrencyRatesWhenLoaded() async* {
-    yield* state.join(
-      (loading) async* {},
-      (loaded) => _refreshCurrencyRates(loaded.rates),
-      (refreshing) async* {},
-      (error) async* {},
-    );
-  }
-
-  Stream<CurrencyRateState> _refreshCurrencyRates(
-    List<CurrencyRate> loadedRates,
-  ) async* {
+  Stream<CurrencyRateState> _refreshCurrencyRates() async* {
     try {
-      yield CurrencyRateState.refreshing(loadedRates);
+      if (state is! CurrencyRatesLoaded) return;
+      yield CurrencyRatesRefreshing(_loadedRates);
       final List<CurrencyRate> refreshedRates =
           await _repository.getCurrencyRates();
-      yield CurrencyRateState.loaded(refreshedRates);
+      yield CurrencyRatesLoaded(refreshedRates);
     } catch (e) {
-      yield CurrencyRateState.loaded(loadedRates);
+      yield CurrencyRatesLoaded(_loadedRates);
     }
   }
 
