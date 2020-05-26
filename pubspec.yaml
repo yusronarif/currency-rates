@@ -13,11 +13,14 @@ dependencies:
   flutter_bloc: ^4.0.0
   get_it: ^4.0.2
   http: ^0.12.1
+  sum_types: ^0.2.1+2
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  build_runner: ^1.10.0
   lint: ^1.2.0
+  sum_types_generator: ^0.2.1+2
 flutter:
   uses-material-design: true
   assets:
